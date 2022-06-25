@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CreateUserDto, UpdateUserDto } from './user.dto';
 import { UserService } from './user.service';
 import { User } from '@prisma/client';
@@ -7,7 +7,7 @@ import { Public } from '../auth/public.metadata';
 import { LocalAuthGuard } from '../auth/local-auth.guard';
 import { AuthResponse } from '../auth/auth-response.type';
 import { AuthService } from '../auth/auth.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PrivateUser, PublicUser } from './user.entity';
 
 @Controller('user')
 export class UserController {
@@ -19,8 +19,8 @@ export class UserController {
 
   @Post('register')
   @Public()
-  async register(@Body() userDto: CreateUserDto): Promise<User> {
-    return await this.userService.createUser(userDto);
+  async register(@Body() userDto: CreateUserDto): Promise<PrivateUser> {
+    return new PrivateUser(await this.userService.createUser(userDto));
   }
 
   @Post('login')
@@ -31,12 +31,17 @@ export class UserController {
   }
 
   @Get('me')
-  async current(@CurrentUser() user: User): Promise<User> {
-    return user;
+  async current(@CurrentUser() user: User): Promise<PrivateUser> {
+    return new PrivateUser(user);
   }
 
   @Patch('me')
-  async update(@CurrentUser() user: User, @Body() userDto: UpdateUserDto): Promise<User> {
-    return await this.userService.updateUser(user.id, userDto);
+  async update(@CurrentUser() user: User, @Body() userDto: UpdateUserDto): Promise<PrivateUser> {
+    return new PrivateUser(await this.userService.updateUser(user.id, userDto));
+  }
+
+  @Get(':userId')
+  async find(@Param('userId') userId: string): Promise<PublicUser> {
+    return new PublicUser(await this.userService.findUser(userId));
   }
 }
