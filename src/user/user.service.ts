@@ -1,10 +1,8 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { PrismaService } from '../common/service/prisma.service';
-import { CreateUserDto, LoginUserDto } from './user.dto';
+import { CreateUserDto, UpdateUserDto } from './user.dto';
 import * as bcrypt from 'bcrypt';
-import * as jwt from 'jsonwebtoken';
-import { AuthResponse } from './auth-response.type';
 
 @Injectable()
 export class UserService {
@@ -36,26 +34,30 @@ export class UserService {
     });
   }
 
-  public async loginUser(loginDto: LoginUserDto): Promise<AuthResponse> {
-    // check if secret is set
-    if (!process.env.JWT_SECRET) {
-      throw new HttpException('Internal server error.', 500);
-    }
-
-    // find user & validate password
-    const user = await this.prismaService.user.findUnique({
-      where: { email: loginDto.email }
+  public async updateUser(id: string, userDto: UpdateUserDto): Promise<User> {
+    const user = await this.prismaService.user.update({
+      where: { id },
+      data: {
+        firstname: userDto.firstname,
+        surname: userDto.surname
+      }
     });
-    if (!user || !await bcrypt.compare(loginDto.password, user.password)) {
-      throw new HttpException('Invalid email or password.', 400);
+    if (!user) {
+      throw new HttpException('This user does not exist.', 404);
     }
+    return user;
+  }
 
-    // generate jwt token
-    return {
-      token: jwt.sign({
-        id: user.authId
-      }, process.env.JWT_SECRET, { expiresIn: '60d' })
-    };
+  public async findUser(value: string, field: keyof User = 'id'): Promise<User> {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        [field]: value
+      }
+    });
+    if (!user) {
+      throw new HttpException('This user does not exist.', 404);
+    }
+    return user;
   }
 
   public async checkAvailability(field: keyof User, value: string): Promise<boolean> {
