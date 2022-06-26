@@ -6,9 +6,10 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { ChannelModule } from './channel/channel.module';
 import { MessageModule } from './message/message.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
-  imports: [ConfigModule.forRoot(), AuthModule, UserModule, ChannelModule, MessageModule],
+  imports: [ConfigModule.forRoot(), EventEmitterModule.forRoot(), AuthModule, UserModule, ChannelModule, MessageModule],
   controllers: [],
   providers: [
     {

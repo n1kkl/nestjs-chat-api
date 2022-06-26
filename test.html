@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+<script>
+  const source = new EventSource('http://localhost:3000/channel/cl4um9ov00019tgvetxqlphhz/events/messages?authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbDR1ZXc4cTEwMDA2cjB2ZThjYm93MWlhIiwiaWF0IjoxNjU2MTk0MTUwLCJleHAiOjE2NjEzNzgxNTB9.g8YGwZxCu6t5VEmkXPX8ccR7ylA0XczQnw_FLhTJugU');
+  source.addEventListener('message.created', (event) => {
+    const message = JSON.parse(event.data);
+    const div = document.createElement('div');
+    div.style.borderBottom = '1px solid #aaa';
+    div.style.paddingBottom = '5px';
+    div.style.marginBottom = '5px';
+    div.innerText = message.content;
+    document.body.appendChild(div);
+  })
+</script>
+</body>
+</html>

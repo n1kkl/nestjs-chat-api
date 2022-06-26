@@ -3,12 +3,15 @@ import { Message } from '@prisma/client';
 import { PrismaService } from '../common/service/prisma.service';
 import { CreateMessageDto } from './message.dto';
 import { ChannelService } from '../channel/channel.service';
+import { Observable } from 'rxjs';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class MessageService {
   constructor(
     private prismaService: PrismaService,
-    private channelService: ChannelService
+    private channelService: ChannelService,
+    private eventEmitter: EventEmitter2
   ) {
   }
 
@@ -24,12 +27,26 @@ export class MessageService {
 
   async createMessage(authorId: string, channelId: string, messageDto: CreateMessageDto): Promise<Message> {
     await this.channelService.findChannel(channelId);
-    return await this.prismaService.message.create({
+    const message = await this.prismaService.message.create({
       data: {
         content: messageDto.content,
         channelId: channelId,
         authorId: authorId
       }
+    });
+    this.eventEmitter.emit('message.created', message);
+    return message;
+  }
+
+  async listenMessage(channelId: string): Promise<Observable<Message>> {
+    await this.channelService.findChannel(channelId);
+    return new Observable<Message>((observer) => {
+      // send message event
+      this.eventEmitter.on('message.created', (message: Message) => {
+        if (message.channelId === channelId) {
+          observer.next(message);
+        }
+      });
     });
   }
 }

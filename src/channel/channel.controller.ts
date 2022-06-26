@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Sse } from '@nestjs/common';
 import { CreateChannelDto, UpdateChannelDto } from './channel.dto';
 import { Channel, Message, User } from '@prisma/client';
 import { ChannelService } from './channel.service';
 import { CurrentUser } from '../user/user.decorator';
 import { CreateMessageDto } from '../message/message.dto';
 import { MessageService } from '../message/message.service';
+import { interval, map, merge, Observable } from 'rxjs';
+import { ServerSentEvent } from '../common/type/server-sent-event.type';
 
 @Controller('channel')
 export class ChannelController {
@@ -37,5 +39,16 @@ export class ChannelController {
   @Get(':channelId/messages')
   async findMessages(@Param('channelId') channelId: string, @Query('page') page?: string): Promise<Message[]> {
     return await this.messageService.findMessages(channelId, page && !isNaN(Number(page)) ? parseInt(page) : 0, 50);
+  }
+
+  @Sse(':channelId/events/messages')
+  async listenMessages(@Param('channelId') channelId: string): Promise<Observable<ServerSentEvent<Message | string>>> {
+    return merge(
+      (await this.messageService.listenMessage(channelId)).pipe(map(message => ({
+        data: message,
+        type: 'message.created'
+      }))),
+      interval(10000).pipe(map((_) => ({ data: 'ok', type: 'heartbeat' })))
+    );
   }
 }
